@@ -442,10 +442,10 @@ form.addEventListener('submit', async (e) => {
 
   // Medication: append each checked item as a separate value for the same field
   if (document.getElementById('oestrogen').checked) {
-    params.append(FIELDS.medication, 'Oestrogen (Sandrena, 1mg daily)');
+    params.append(FIELDS.medication, 'Oestrogen (Sandrena, 1mg)');
   }
   if (document.getElementById('progesterone').checked) {
-    params.append(FIELDS.medication, 'Progesterone (Getrepix, 100mg fortnightly)');
+    params.append(FIELDS.medication, 'Progesterone (Getrepix, 100mg)');
   }
   const testoLabel = selectedSide === 'left' ? 'Testosterone (Left)' : 'Testosterone (Right)';
   params.append(FIELDS.medication, testoLabel);
