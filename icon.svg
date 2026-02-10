@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0d1117"/>
+  <g transform="translate(256,256)">
+    <!-- Pulse/heartbeat line -->
+    <polyline points="-130,10 -70,10 -40,-70 0,60 30,-30 60,10 130,10" fill="none" stroke="#c4a0f5" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Baseline -->
+    <line x1="-140" y1="100" x2="140" y2="100" stroke="#1e2035" stroke-width="12" stroke-linecap="round"/>
+  </g>
+</svg>
