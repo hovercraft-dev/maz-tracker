@@ -84,7 +84,6 @@
   }
 
   input:focus, textarea:focus { border-color: #c4a0f5; }
-  input[type="date"] { color-scheme: dark; }
 
   .unit { position: relative; }
   .unit::after {
@@ -251,67 +250,6 @@
   button[type="submit"]:active { opacity: 0.8; }
   button[type="submit"]:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* ── Setup overlay ── */
-  .setup {
-    position: fixed;
-    inset: 0;
-    background: #0d1117;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1.25rem;
-    z-index: 100;
-  }
-
-  .setup.hidden { display: none; }
-
-  .setup-card {
-    width: 100%;
-    max-width: 400px;
-  }
-
-  .setup-card h2 {
-    font-size: 1.25rem;
-    color: #e6edf3;
-    margin-bottom: 0.5rem;
-  }
-
-  .setup-card p {
-    font-size: 0.8rem;
-    color: #7d8590;
-    margin-bottom: 1.25rem;
-    line-height: 1.5;
-  }
-
-  .setup-card input[type="url"] {
-    width: 100%;
-    padding: 1rem;
-    font-size: 0.95rem;
-    font-weight: 500;
-    font-family: inherit;
-    color: #e6edf3;
-    background: #161b22;
-    border: 1.5px solid #30363d;
-    border-radius: 10px;
-    outline: none;
-    margin-bottom: 1rem;
-  }
-
-  .setup-card input[type="url"]:focus { border-color: #c4a0f5; }
-
-  .setup-card .setup-btn {
-    width: 100%;
-    padding: 1rem;
-    font-size: 1rem;
-    font-weight: 700;
-    font-family: inherit;
-    color: #0d1117;
-    background: #c4a0f5;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-  }
-
   /* ── Toast ── */
   .toast {
     position: fixed;
@@ -338,16 +276,6 @@
 </head>
 <body>
 
-<!-- ── Setup overlay ── -->
-<div class="setup" id="setup">
-  <div class="setup-card">
-    <h2>Setup</h2>
-    <p>Paste your Google Apps Script endpoint URL to connect this tracker.</p>
-    <input type="url" id="endpointInput" placeholder="https://script.google.com/macros/s/AKfycbyd72e7IX87dFMnMvJNvB80G5hM2OhGEl8P49FGNGvD6rqP2uct7XRfmDxURH9kPb0/exec" autocomplete="off" spellcheck="false">
-    <button type="button" class="setup-btn" id="saveEndpoint">Save</button>
-  </div>
-</div>
-
 <div class="app">
   <h1>Health Tracker</h1>
   <form id="form">
@@ -355,10 +283,6 @@
     <!-- ── Metrics ── -->
     <div class="section-label">Metrics</div>
 
-    <div class="field">
-      <label for="date">Date</label>
-      <input type="date" id="date" required>
-    </div>
     <div class="field">
       <label for="weight">Weight</label>
       <div class="unit" data-unit="kg">
@@ -433,23 +357,16 @@
 <div class="toast" id="toast">Logged</div>
 
 <script>
-// ── ENDPOINT (stored in localStorage) ──
-const STORAGE_KEY = 'apps_script_url';
-let APPS_SCRIPT_URL = localStorage.getItem(STORAGE_KEY) || '';
-
-const setupOverlay = document.getElementById('setup');
-const endpointInput = document.getElementById('endpointInput');
-document.getElementById('saveEndpoint').addEventListener('click', () => {
-  const url = endpointInput.value.trim();
-  if (!url) return;
-  localStorage.setItem(STORAGE_KEY, url);
-  APPS_SCRIPT_URL = url;
-  setupOverlay.classList.add('hidden');
-});
-if (APPS_SCRIPT_URL) setupOverlay.classList.add('hidden');
+const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeaU5fwW_xqpxSr1VxJL6SvTpwxA_DrrPnphMq2M01TFXTw3Q/formResponse';
+const FIELDS = {
+  weight:     'entry.841388769',
+  waist:      'entry.1933747550',
+  hips:       'entry.1558876293',
+  medication: 'entry.208895798',
+  notes:      'entry.2144247428'
+};
 
 const form = document.getElementById('form');
-const dateInput = document.getElementById('date');
 const toast = document.getElementById('toast');
 const notesToggle = document.getElementById('notesToggle');
 const notesArea = document.getElementById('notesArea');
@@ -467,8 +384,8 @@ function getSuggestedSide() {
   if (!stored) return 'left';
   try {
     const { side, date } = JSON.parse(stored);
-    if (date === todayStr()) return side;          // same day → keep same
-    return side === 'left' ? 'right' : 'left';     // new day → opposite
+    if (date === todayStr()) return side;
+    return side === 'left' ? 'right' : 'left';
   } catch { return 'left'; }
 }
 
@@ -506,10 +423,8 @@ function showToast() {
 // ── Reset ──
 function resetForm() {
   form.reset();
-  dateInput.value = todayStr();
   notesArea.classList.remove('open');
   notesToggle.textContent = 'Add a note +';
-  // Refresh side suggestion (now that we saved)
   selectedSide = getSuggestedSide();
   updateSideUI();
 }
@@ -520,21 +435,29 @@ form.addEventListener('submit', async (e) => {
   const btn = form.querySelector('button[type="submit"]');
   btn.disabled = true;
 
-  const payload = {
-    date: dateInput.value,
-    weight: parseFloat(document.getElementById('weight').value),
-    waist: parseFloat(document.getElementById('waist').value),
-    hips: parseFloat(document.getElementById('hips').value),
-    oestrogen: document.getElementById('oestrogen').checked,
-    progesterone: document.getElementById('progesterone').checked,
-    testosterone_side: selectedSide,
-    notes: document.getElementById('notes').value.trim() || ''
-  };
+  const params = new URLSearchParams();
+  params.append(FIELDS.weight, document.getElementById('weight').value);
+  params.append(FIELDS.waist, document.getElementById('waist').value);
+  params.append(FIELDS.hips, document.getElementById('hips').value);
+
+  // Medication: append each checked item as a separate value for the same field
+  if (document.getElementById('oestrogen').checked) {
+    params.append(FIELDS.medication, 'Oestrogen (Sandrena, 1mg daily)');
+  }
+  if (document.getElementById('progesterone').checked) {
+    params.append(FIELDS.medication, 'Progesterone (Getrepix, 100mg fortnightly)');
+  }
+  const testoLabel = selectedSide === 'left' ? 'Testosterone (Left)' : 'Testosterone (Right)';
+  params.append(FIELDS.medication, testoLabel);
+
+  params.append(FIELDS.notes, document.getElementById('notes').value.trim());
 
   try {
-    await fetch(APPS_SCRIPT_URL, {
+    await fetch(FORM_URL, {
       method: 'POST',
-      body: JSON.stringify(payload)
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
     });
     saveSide(selectedSide);
     showToast();
@@ -547,7 +470,6 @@ form.addEventListener('submit', async (e) => {
 });
 
 // ── Init ──
-dateInput.value = todayStr();
 updateSideUI();
 
 // ── Service worker ──
